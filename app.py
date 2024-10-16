@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from models import analyze_resume
+from flask_cors import CORS
 import os
 import PyPDF2
 
 app = Flask(__name__)
+CORS(app) 
 
 # Connect to MongoDB
 client = MongoClient("mongodb+srv://test:Test25@cluster0.pjsuo.mongodb.net/")
