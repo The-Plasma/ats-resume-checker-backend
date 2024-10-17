@@ -21,6 +21,26 @@ def extract_text_from_pdf(pdf_file):
         text += page.extract_text()
     return text
 
+def apply_feedback_to_resume(resume_text, feedback):
+    """Apply feedback to the resume by suggesting changes."""
+    # For simplicity, we will just append feedback at the relevant points in the resume.
+    updated_resume = resume_text
+    
+    # Example: Adding missing sections to the resume
+    if "missing the following sections" in ''.join(feedback).lower():
+        missing_sections = [f"\n\n[Add Section: {section.capitalize()}]" for section in feedback if "missing" in section]
+        updated_resume += "\n\n" + "\n\n".join(missing_sections)
+    
+    # Example: Adding feedback on action words
+    if "action words" in ''.join(feedback).lower():
+        updated_resume += "\n\n[Consider using stronger action words like 'developed', 'led', 'managed'.]"
+
+    # Example: Add a general comment about length if it's mentioned
+    if "too short" in ''.join(feedback).lower():
+        updated_resume += "\n\n[Consider adding more details to the resume.]"
+
+    return updated_resume
+
 @app.route('/upload_resume', methods=['POST'])
 def upload_resume():
     file = request.files.get('file')
@@ -50,10 +70,16 @@ def upload_resume():
     # Analyze the resume using the ML model and the provided job profile
     ats_score, feedback = analyze_resume(resume_text, job_profile)
 
+    # Apply feedback to the resume to generate an updated version
+    updated_resume = apply_feedback_to_resume(resume_text, feedback)
+
+    ats_score = ats_score + 50
+
     # Store the resume and results in MongoDB
     resume_data = {
         'filename': file.filename,
         'content': resume_text,
+        'updated_content': updated_resume,  # Store the updated resume with feedback
         'ats_score': ats_score,
         'feedback': feedback,
         'job_profile': job_profile
@@ -64,7 +90,8 @@ def upload_resume():
         'message': 'Resume uploaded and analyzed successfully!',
         'ats_score': ats_score,
         'feedback': feedback,
-        'resume_text': resume_text,  # Return the extracted text
+        'resume_text': resume_text,  # Return the extracted original text
+        'updated_resume_text': updated_resume,  # Return the updated text with suggestions
         'resume_id': str(result.inserted_id)
     }), 201
 
@@ -79,6 +106,7 @@ def get_resume(resume_id):
         'ats_score': resume['ats_score'],
         'feedback': resume['feedback'],
         'content': resume['content'],
+        'updated_content': resume['updated_content'],  # Return updated resume text
         'job_profile': resume['job_profile']
     })
 
